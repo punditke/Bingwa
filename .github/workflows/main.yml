@@ -7,9 +7,6 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -27,19 +24,14 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
     
-    - name: Grant execute permission
+    - name: Make gradlew executable
       run: chmod +x gradlew
     
-    - name: Build APKs
+    - name: Build Debug APK
       run: ./gradlew assembleDebug --no-daemon --stacktrace
-      env:
-        JAVA_HOME: ${{ env.JAVA_HOME }}
     
-    - name: Upload Artifacts
+    - name: Upload APK
       uses: actions/upload-artifact@v4
-      if: always()
       with:
-        name: android-apks
-        path: |
-          app/build/outputs/apk/debug/*.apk
-          app/build/outputs/apk/release/*.apk
+        name: debug-apk
+        path: app/build/outputs/apk/debug/*.apk
