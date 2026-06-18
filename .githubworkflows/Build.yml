@@ -1,0 +1,49 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+# Fixes the Node.js 20 deprecation warning you saw
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4 # Updated v3 -> v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: 'gradle' # Enables built-in caching for faster builds
+    
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+      with:
+        gradle-version: 8.2
+        # Removed cache-disabled: true (caching prevents timeouts)
+
+    - name: Grant execute permission
+      run: chmod +x gradlew
+    
+    # Combined clean and build to save runner resources
+    # Added -Dorg.gradle.jvmargs to prevent the "Orphan Process" kill
+    - name: Build APKs
+      run: ./gradlew clean assembleDebug assembleRelease -Dorg.gradle.jvmargs="-Xmx2048m -XX:MaxMetaspaceSize=512m"
+    
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-apks
+        path: |
+          app/build/outputs/apk/debug/*.apk
+          app/build/outputs/apk/release/*.apk
