@@ -9,7 +9,6 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs='-Xmx2048m -XX:MaxMetaspaceSize=512m'"
 
 jobs:
   build:
@@ -25,14 +24,21 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
     
-    - name: Generate Gradle Wrapper
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        api-level: 33
+        build-tools: '33.0.1'
+        target: 'android-33'
+    
+    - name: Set JAVA_HOME
+      run: echo "JAVA_HOME=${{ env.JAVA_HOME }}" >> $GITHUB_ENV
+      
+    - name: Verify Java Installation
       run: |
-        if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
-          mkdir -p gradle/wrapper
-          curl -L https://services.gradle.org/distributions/gradle-8.2-bin.zip -o /tmp/gradle-8.2.zip
-          unzip -j /tmp/gradle-8.2.zip "*/lib/gradle-wrapper-*.jar" -d gradle/wrapper/
-          mv gradle/wrapper/gradle-wrapper-*.jar gradle/wrapper/gradle-wrapper.jar
-        fi
+        echo "JAVA_HOME: $JAVA_HOME"
+        java -version
+        which java
     
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
@@ -40,19 +46,40 @@ jobs:
     - name: Create local properties
       run: |
         echo "sdk.dir=$ANDROID_HOME" > local.properties
-        echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m" >> gradle.properties
+        echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8" >> gradle.properties
+        echo "android.useAndroidX=true" >> gradle.properties
+        echo "kotlin.code.style=official" >> gradle.properties
+        echo "android.nonTransitiveRClass=true" >> gradle.properties
     
     - name: Build Debug APK
-      run: ./gradlew assembleDebug --no-daemon --stacktrace
+      env:
+        JAVA_HOME: ${{ env.JAVA_HOME }}
+      run: ./gradlew assembleDebug --no-daemon --stacktrace --info
     
     - name: Build Release APK
+      env:
+        JAVA_HOME: ${{ env.JAVA_HOME }}
       run: ./gradlew assembleRelease --no-daemon --stacktrace
     
-    - name: Upload APKs
+    - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: android-apks
+        name: debug-apk
+        path: app/build/outputs/apk/debug/*.apk
+    
+    - name: Upload Release APK
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: release-apk
+        path: app/build/outputs/apk/release/*.apk
+        
+    - name: Upload Build Reports
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: build-reports
         path: |
-          app/build/outputs/apk/debug/*.apk
-          app/build/outputs/apk/release/*.apk
+          app/build/reports/
+          app/build/outputs/logs/
