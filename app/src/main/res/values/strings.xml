@@ -1,0 +1,8 @@
+xml
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">M-Pesa Automation</string>
+    <string name="accessibility_service_description">Required to automate USSD menu navigation for M-Pesa transactions</string>
+    <string name="notification_channel_name">M-Pesa Automation Service</string>
+    <string name="notification_channel_description">Background service for processing M-Pesa transactions</string>
+</resources>
