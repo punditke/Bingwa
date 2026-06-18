@@ -21,18 +21,16 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
     
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v3
-    
-    - name: Grant execute permission
-      run: chmod +x gradlew
-    
-    - name: Build with Gradle
+    - name: Install Android SDK Components
       run: |
-        export JAVA_HOME=${{ steps.setup-java.outputs.java-home }}
-        ./gradlew assembleDebug --no-daemon --stacktrace
-      env:
-        JAVA_HOME: ${{ steps.setup-java.outputs.java-home }}
+        ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager --licenses
+        ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.1"
+    
+    - name: Build with System Gradle
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gradle
+        gradle assembleDebug --no-daemon --stacktrace
     
     - name: Upload APK
       uses: actions/upload-artifact@v4
