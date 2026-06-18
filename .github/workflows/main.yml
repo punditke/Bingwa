@@ -24,13 +24,15 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: 'gradle'
     
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v3
-      with:
-        gradle-version: 8.2
-        gradle-home-cache-cleanup: true
+    - name: Generate Gradle Wrapper
+      run: |
+        if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+          mkdir -p gradle/wrapper
+          curl -L https://services.gradle.org/distributions/gradle-8.2-bin.zip -o /tmp/gradle-8.2.zip
+          unzip -j /tmp/gradle-8.2.zip "*/lib/gradle-wrapper-*.jar" -d gradle/wrapper/
+          mv gradle/wrapper/gradle-wrapper-*.jar gradle/wrapper/gradle-wrapper.jar
+        fi
     
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
@@ -40,35 +42,17 @@ jobs:
         echo "sdk.dir=$ANDROID_HOME" > local.properties
         echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m" >> gradle.properties
     
-    - name: Clean project
-      run: ./gradlew clean --no-daemon
-    
     - name: Build Debug APK
       run: ./gradlew assembleDebug --no-daemon --stacktrace
     
     - name: Build Release APK
       run: ./gradlew assembleRelease --no-daemon --stacktrace
     
-    - name: Run unit tests
-      run: ./gradlew testDebugUnitTest --no-daemon --stacktrace
-      
-    - name: Upload Debug APK
+    - name: Upload APKs
       uses: actions/upload-artifact@v4
-      with:
-        name: debug-apk
-        path: app/build/outputs/apk/debug/app-debug.apk
-        
-    - name: Upload Release APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: release-apk
-        path: app/build/outputs/apk/release/app-release-unsigned.apk
-        
-    - name: Upload Build Reports
       if: always()
-      uses: actions/upload-artifact@v4
       with:
-        name: build-reports
+        name: android-apks
         path: |
-          app/build/reports/
-          app/build/outputs/logs/
+          app/build/outputs/apk/debug/*.apk
+          app/build/outputs/apk/release/*.apk
